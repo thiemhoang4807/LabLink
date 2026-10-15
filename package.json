@@ -1,0 +1,25 @@
+{
+  "name": "lablink-seapp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "LabLink — Kết nối tiềm năng, cùng làm nghiên cứu",
+  "workspaces": [
+    "apps/web"
+  ],
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:web": "npm run dev --workspace apps/web",
+    "build": "npm run build --workspace apps/web",
+    "typecheck": "npm run typecheck --workspace apps/web",
+    "preview": "npm run preview --workspace apps/web",
+    "test:e2e": "node scripts/e2e.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "playwright": "^1.64.1",
+    "prettier": "^3.9.10"
+  }
+}

@@ -1,0 +1,61 @@
+# This is a local demonstration environment. See docs/OPERATIONS.md before public hosting.
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: lablink
+      POSTGRES_USER: lablink
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lablink_local_demo_change_me}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lablink -d lablink"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  api:
+    build: ./apps/api
+    environment:
+      APP_ENV: development
+      DATABASE_URL: postgresql+psycopg://lablink:${POSTGRES_PASSWORD:-lablink_local_demo_change_me}@db:5432/lablink
+      STORAGE_DIR: /app/data/uploads
+      COOKIE_SECURE: "false"
+      SESSION_HOURS: "24"
+      SEED_DEMO: "true"
+      FRONTEND_ORIGINS: http://localhost:8080,http://127.0.0.1:8080
+      AI_MODE: ${AI_MODE:-local}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-text-embedding-3-small}
+      CHAT_MODEL: ${CHAT_MODEL:-gpt-4.1-mini}
+      CRAWL_ALLOWED_HOSTS: ${CRAWL_ALLOWED_HOSTS:-uit.edu.vn}
+    volumes:
+      - api_data:/app/data
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=5)"]
+      interval: 10s
+      timeout: 6s
+      retries: 12
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "127.0.0.1:8080:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  api_data:

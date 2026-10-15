@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.example
+data
+uploads
+__pycache__
+**/__pycache__
+.pytest_cache
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.log
+tests
