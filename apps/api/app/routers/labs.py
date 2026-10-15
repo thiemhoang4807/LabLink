@@ -31,10 +31,21 @@ def owned_lab(db: Session, lab_id: int, user: User) -> Lab:
 
 
 @router.get("")
-def list_labs(q: str = Query(default="", max_length=150), topic: str = Query(default="", max_length=80), db: Session = Depends(get_db)):
-    labs = db.scalars(select(Lab).options(selectinload(Lab.owner), selectinload(Lab.publications)).order_by(Lab.id).limit(500)).all()
+def list_labs(
+    q: str = Query(default="", max_length=150),
+    topic: str = Query(default="", max_length=80),
+    limit: int | None = Query(default=None, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+):
+    labs = db.scalars(select(Lab).options(selectinload(Lab.owner), selectinload(Lab.publications)).order_by(Lab.id)).all()
     q = q.casefold()
-    return [lab_json(lab) for lab in labs if (not q or q in " ".join([lab.name, lab.summary, lab.description, lab.owner.name, *lab.topics, *lab.skills]).casefold()) and (not topic or topic.casefold() in [t.casefold() for t in lab.topics])]
+    filtered = [lab for lab in labs if (not q or q in " ".join([lab.name, lab.summary, lab.description, lab.owner.name, *lab.topics, *lab.skills]).casefold()) and (not topic or topic.casefold() in [t.casefold() for t in lab.topics])]
+    if limit is not None:
+        filtered = filtered[offset:offset + limit]
+    elif offset:
+        filtered = filtered[offset:]
+    return [lab_json(lab) for lab in filtered]
 
 
 @router.get("/{lab_id}")

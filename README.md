@@ -120,7 +120,7 @@ Push-Location apps/api
 Pop-Location
 ```
 
-Đã chạy **40 kiểm thử backend**, typecheck và build frontend thành công khi dựng bản này. Kiểm tra trình duyệt đạt 11 bước smoke, không có lỗi JavaScript chưa xử lý; màn hình rộng 390 px không bị tràn ngang. E2E độc lập bằng Edge headless trên Windows đạt 11 bước từ hồ sơ, PDF, ứng tuyển đến accepted và session hết hạn; runner thoát exit 0 và cleanup không lỗi. Phạm vi, giới hạn và cách tái lập: [docs/VALIDATION.md](./docs/VALIDATION.md). CI được cấu hình chạy lại build/typecheck và pytest, không cần secret.
+Đã chạy **45 kiểm thử backend**, typecheck và build frontend thành công. E2E độc lập bằng Edge headless trên Windows kiểm tra luồng ứng tuyển, bảo toàn nháp khi upload/xóa CV, điểm matching 1%, pipeline, hết hạn session và đăng xuất cho cả hai vai; runner thoát exit 0, không có lỗi JavaScript hoặc request ra ngoài. Phạm vi, giới hạn và cách tái lập: [docs/VALIDATION.md](./docs/VALIDATION.md). CI được cấu hình chạy lại build/typecheck và pytest, không cần secret.
 
 Chạy E2E bằng Playwright sau khi đã cài dependencies và `.venv`:
 

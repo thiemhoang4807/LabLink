@@ -42,6 +42,44 @@ def test_topic_and_skill_boundaries():
     assert ai.classify_text("Xử lý ngôn ngữ tự nhiên với PyTorch")['topics'] == ["NLP"]
 
 
+def test_explicit_or_negation_custom_skills_and_gpa_ranges():
+    either = ai.extract_filters("Tìm ứng viên biết React hoặc Python")
+    assert either["skills_any"] == ["React", "Python"]
+    assert ai.matches_filters({"skills": ["React"], "topics": []}, either)
+    assert ai.matches_filters({"skills": ["Python"], "topics": []}, either)
+    assert not ai.matches_filters({"skills": ["Java"], "topics": []}, either)
+
+    excluded = ai.extract_filters("Tìm ứng viên có React nhưng không biết Python")
+    assert excluded["skills"] == ["React"]
+    assert excluded["skills_excluded"] == ["Python"]
+    assert ai.matches_filters({"skills": ["React"], "topics": []}, excluded)
+    assert not ai.matches_filters({"skills": ["React", "Python"], "topics": []}, excluded)
+
+    custom = ai.extract_filters("Tìm ứng viên có React và Kubernetes")
+    assert set(custom["skills"]) == {"React", "Kubernetes"}
+    assert ai.matches_filters({"skills": ["React", "Kubernetes"], "topics": []}, custom)
+    assert not ai.matches_filters({"skills": ["React"], "topics": []}, custom)
+
+    ranged = ai.extract_filters("Tìm sinh viên GPA từ 3.2 đến 3.5")
+    assert ranged["gpa_conditions"] == [
+        {"operator": ">=", "value": 3.2},
+        {"operator": "<=", "value": 3.5},
+    ]
+    assert not ai.matches_filters({"gpa": 3.8, "skills": [], "topics": []}, ranged)
+    multiple = ai.extract_filters("GPA > 3.2 và GPA < 3.5")
+    assert len(multiple["gpa_conditions"]) == 2
+    assert not ai.matches_filters({"gpa": 3.8, "skills": [], "topics": []}, multiple)
+
+
+def test_student_gpa_is_checked_against_lab_minimum():
+    query = ai.extract_filters("Tìm lab phù hợp với GPA 3.2 của tôi")
+    eligible = {"type": "lab", "gpa": 3.0, "skills": [], "topics": []}
+    ineligible = {"type": "lab", "gpa": 3.8, "skills": [], "topics": []}
+    assert ai.matches_filters(eligible, query, applicant_gpa=3.2)
+    assert not ai.matches_filters(ineligible, query, applicant_gpa=3.2)
+    assert not ai.matches_filters(eligible, query, applicant_gpa=None)
+
+
 def test_stable_local_vectors():
     vector = ai.local_embedding("Python NLP xử lý ngôn ngữ")
     assert len(vector) == ai.DIMENSIONS
@@ -94,6 +132,21 @@ def test_student_only_receives_public_labs(dataset):
     result = ai.answer_query(db, users[2], "Tìm lab AI")
     assert {source["id"] for source in result["sources"]} == {f"lab:{labs[0].id}"}
     assert all(source["type"] == "lab" for source in result["sources"])
+
+
+def test_personalized_student_query_uses_profile_with_hard_topics(dataset, monkeypatch):
+    db, users, _ = dataset
+    users[2].skills = ["Python"]
+    seen = []
+    original = ai.local_embedding
+
+    def capture(text):
+        seen.append(text)
+        return original(text)
+
+    monkeypatch.setattr(ai, "local_embedding", capture)
+    ai.answer_query(db, users[2], "Tìm lab về AI phù hợp với kỹ năng của tôi")
+    assert any("Python" in text for text in seen)
 
 
 def test_lab_research_answer_quotes_a_persisted_publication_source(dataset):

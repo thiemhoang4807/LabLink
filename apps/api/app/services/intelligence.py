@@ -104,20 +104,75 @@ def classify_text(text: str) -> dict:
 
 
 def extract_filters(message: str) -> dict:
-    """Parse explicit hard constraints; GPA operators never become fuzzy scores."""
+    """Parse explicit constraints, including a simple OR/NOT group and GPA range."""
     value = normalize(message)
-    filters: dict = {"skills": _labels(value, SKILLS), "topics": _labels(value, TOPICS)}
+    skills = _labels(value, SKILLS)
+    # Profiles accept custom tags. Capture clearly named technologies that are
+    # joined to a known skill, or explicitly follow a skills label.
+    original = message
+    known_names = {name.casefold() for name in SKILLS}
+    for match in re.finditer(r"\b[A-Z][A-Za-z0-9+#.-]{2,}\b", original):
+        candidate = match.group(0)
+        if candidate.casefold() in known_names or normalize(candidate) in STOPWORDS:
+            continue
+        prefix = normalize(original[max(0, match.start() - 45):match.start()])
+        if re.search(r"(?:ky nang|skills?)\s*[:：]?\s*$|(?:and|or|va|hoac)\s*$", prefix):
+            skills.append(candidate)
+    skills = list(dict.fromkeys(skills))
+    topics = _labels(value, TOPICS)
     # A specific AI subfield should not accidentally broaden into all of AI.
-    if len(filters["topics"]) > 1 and "AI" in filters["topics"]:
-        filters["topics"].remove("AI")
-    match = re.search(
-        r"(?:gpa|diem trung binh)\s*(>=|<=|>|<|=|lon hon hoac bang|nho hon hoac bang|it nhat|toi thieu|tren|lon hon|duoi|nho hon|tu)?\s*(\d+(?:[.,]\d+)?)",
-        value,
-    )
-    if match:
-        op, number = match.groups()
-        operator = {"tren": ">", "lon hon": ">", "duoi": "<", "nho hon": "<", "tu": ">=", "it nhat": ">=", "toi thieu": ">=", "lon hon hoac bang": ">=", "nho hon hoac bang": "<="}.get(op, op or ">=")
-        filters["gpa"] = {"operator": operator, "value": float(number.replace(",", "."))}
+    if len(topics) > 1 and "AI" in topics:
+        topics.remove("AI")
+
+    def condition(operator: str | None, number: str) -> dict:
+        op = (operator or "").strip()
+        normalized = {"tren": ">", "lon hon": ">", "duoi": "<", "nho hon": "<", "tu": ">=", "it nhat": ">=", "toi thieu": ">=", "lon hon hoac bang": ">=", "nho hon hoac bang": "<="}.get(op, op or ">=")
+        return {"operator": normalized, "value": float(number.replace(",", "."))}
+
+    gpa_conditions = []
+    range_match = re.search(r"(?:gpa|diem trung binh)\s+(?:tu|from|between)\s*(\d+(?:[.,]\d+)?)\s*(?:den|to|and|-)\s*(\d+(?:[.,]\d+)?)", value)
+    if range_match:
+        lower, upper = range_match.groups()
+        gpa_conditions.extend((condition(">=", lower), condition("<=", upper)))
+    else:
+        pattern = r"(?:gpa|diem trung binh)\s*(>=|<=|>|<|=|lon hon hoac bang|nho hon hoac bang|it nhat|toi thieu|tren|lon hon|duoi|nho hon|tu)?\s*(\d+(?:[.,]\d+)?)"
+        gpa_conditions = [condition(op, number) for op, number in re.findall(pattern, value)]
+
+    def split_polarity(values: list[str], vocabulary: dict) -> tuple[list[str], list[str], list[str]]:
+        positive, excluded = [], []
+        spans = []
+        for label in values:
+            aliases = vocabulary.get(label, (label,))
+            found = next((re.search(r"(?<![\w])" + re.escape(normalize(alias)) + r"(?![\w])", value) for alias in aliases if re.search(r"(?<![\w])" + re.escape(normalize(alias)) + r"(?![\w])", value)), None)
+            if not found:
+                positive.append(label)
+                continue
+            before = value[max(0, found.start() - 28):found.start()]
+            target = excluded if re.search(r"(?:khong(?:\s+(?:biet|co|can|muon))?|not|without)\s*$", before) else positive
+            target.append(label)
+            spans.append((found.start(), found.end(), label))
+        positive = list(dict.fromkeys(positive))
+        excluded = list(dict.fromkeys(excluded))
+        disjunction = any(re.search(r"\b(?:or|hoac)\b", value[left[1]:right[0]]) for left, right in zip(spans, spans[1:]))
+        if disjunction and len(positive) > 1:
+            return [], excluded, positive
+        return positive, excluded, []
+
+    skill_required, skill_excluded, skill_any = split_polarity(skills, SKILLS)
+    topic_required, topic_excluded, topic_any = split_polarity(topics, TOPICS)
+    filters: dict = {"skills": skill_required, "topics": topic_required}
+    if skill_excluded:
+        filters["skills_excluded"] = skill_excluded
+    if skill_any:
+        filters["skills_any"] = skill_any
+    if topic_excluded:
+        filters["topics_excluded"] = topic_excluded
+    if topic_any:
+        filters["topics_any"] = topic_any
+    if gpa_conditions:
+        filters["gpa"] = gpa_conditions[0]
+        if len(gpa_conditions) > 1:
+            filters["gpa_conditions"] = gpa_conditions
     return filters
 
 
@@ -130,14 +185,32 @@ def gpa_matches(actual: float | None, condition: dict | None) -> bool:
     return {">": actual > target, ">=": actual >= target, "<": actual < target, "<=": actual <= target, "=": actual == target}[condition["operator"]]
 
 
-def matches_filters(record: dict, filters: dict) -> bool:
-    if not gpa_matches(record.get("gpa"), filters.get("gpa")):
+def matches_filters(record: dict, filters: dict, *, applicant_gpa: float | None = None) -> bool:
+    conditions = filters.get("gpa_conditions") or ([filters["gpa"]] if filters.get("gpa") else [])
+    # When discovering labs, a student's stated GPA is a qualification against
+    # each lab's minimum; it is not a requested minimum GPA for a lab.
+    if record.get("type") == "lab" and conditions:
+        if applicant_gpa is None or not all(gpa_matches(applicant_gpa, condition) for condition in conditions):
+            return False
+        if applicant_gpa < (record.get("gpa") or 0):
+            return False
+    elif any(not gpa_matches(record.get("gpa"), condition) for condition in conditions):
         return False
-    if not set(filters.get("skills", [])).issubset(canonical_skills(record.get("skills", []))):
+    record_skills = canonical_skills(record.get("skills", []))
+    if not canonical_skills(filters.get("skills", [])).issubset(record_skills):
+        return False
+    if filters.get("skills_any") and not canonical_skills(filters["skills_any"]).intersection(record_skills):
+        return False
+    if canonical_skills(filters.get("skills_excluded", [])).intersection(record_skills):
         return False
     requested = set(filters.get("topics", []))
     # Multiple explicit topics are an AND constraint, as are multiple skills.
-    return requested.issubset(canonical_topics(record.get("topics", [])))
+    record_topics = canonical_topics(record.get("topics", []))
+    if not requested.issubset(record_topics):
+        return False
+    if filters.get("topics_any") and not set(filters["topics_any"]).intersection(record_topics):
+        return False
+    return not set(filters.get("topics_excluded", [])).intersection(record_topics)
 
 
 def lexical_tokens(value: str) -> list[str]:
@@ -325,13 +398,15 @@ def vector_scores(db: Session, query_vector: list[float], chunks: list[ResearchC
 
 def answer_query(db: Session, actor: User, message: str) -> dict:
     filters = extract_filters(message)
-    records = [record for record in scoped_records(db, actor) if matches_filters(record, filters)]
-    hard_constraints = bool(filters.get("gpa") or filters["skills"] or filters["topics"])
+    applicant_gpa = actor.gpa if actor.role == "student" else None
+    records = [record for record in scoped_records(db, actor) if matches_filters(record, filters, applicant_gpa=applicant_gpa)]
+    hard_constraints = bool(filters.get("gpa") or filters["skills"] or filters["topics"] or filters.get("skills_any") or filters.get("topics_any") or filters.get("skills_excluded") or filters.get("topics_excluded"))
     # A broad student request can use their declared interests for ranking; this
     # context never adds hidden hard constraints or leaves the server unconsented.
     retrieval_query = message
     ranking_context = dict(filters)
-    if actor.role == "student" and not hard_constraints:
+    personalized = bool(re.search(r"\b(?:phu hop|cua toi|voi toi|for me|my skills|my profile|nguyen vong cua toi)\b", normalize(message)))
+    if actor.role == "student" and (not hard_constraints or personalized):
         retrieval_query += " " + " ".join(actor.skills + actor.interests)
         ranking_context["requester_profile"] = {"skills": actor.skills, "interests": actor.interests}
     mode, warning = "local", None

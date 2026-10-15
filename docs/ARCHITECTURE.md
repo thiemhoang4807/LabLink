@@ -122,7 +122,7 @@ Quyền tải và truy xuất CV yêu cầu ít nhất một đơn có liên k�
 
 Bookmark lưu trong localStorage theo tài khoản trên thiết bị, chưa đồng bộ server. Chuông cập nhật hiển thị trạng thái các đơn đã tải, không phải push notification. Giao diện chat hiển thị nhiều lượt nhưng backend không dùng lịch sử để hiểu tham chiếu qua lượt.
 
-Không tìm kiếm vector chéo quyền truy cập. Session được lưu dạng hash token phía server, cookie HttpOnly, kiểm tra origin và yêu cầu header riêng cho mutation. TLS/cookie Secure, rate limit, xác minh giảng viên và quy trình quản trị bổ sung là điều kiện trước một pilot thực tế. Đăng ký vai giảng viên tự khai báo trong demo không chứng minh quan hệ với trường.
+Không tìm kiếm vector chéo quyền truy cập. Session được lưu dạng hash token phía server, cookie HttpOnly, kiểm tra origin và yêu cầu header riêng cho mutation. Trong Compose, API chỉ tin forwarded headers từ IP Nginx cố định trên mạng nội bộ; API truy cập trực tiếp không tin header do client gửi. TLS/cookie Secure, rate limit dùng chung nhiều instance, xác minh giảng viên và quy trình quản trị bổ sung là điều kiện trước một pilot thực tế. Đăng ký vai giảng viên tự khai báo trong demo không chứng minh quan hệ với trường.
 
 ## Các giới hạn có chủ đích
 

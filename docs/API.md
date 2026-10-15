@@ -27,10 +27,10 @@ Lỗi có trường `detail`; lỗi Pydantic có thể là danh sách vị trí/
 | POST | `/api/auth/register` | `{name,email,password,role}`; role student/lecturer, mật khẩu tối thiểu 10 ký tự |
 | POST | `/api/auth/login` | `{email,password}`; trả `{user}` và cookie |
 | GET | `/api/auth/me` | User đang đăng nhập |
-| POST | `/api/auth/logout` | Xóa session và cookie |
+| POST | `/api/auth/logout` | Sinh viên hoặc giảng viên đều xóa session phía máy chủ và cookie |
 | GET | `/api/profile` | Hồ sơ hiện tại, gồm metadata file |
 | PATCH | `/api/profile` | Cập nhật các trường hồ sơ và `consent_ai` |
-| GET | `/api/labs?q=&topic=` | Danh sách lab công khai, tối đa 500; query/topic tùy chọn |
+| GET | `/api/labs?q=&topic=&limit=&offset=` | Tìm danh sách lab công khai; lọc trước khi phân trang, `limit` tùy chọn tối đa 500 |
 | GET | `/api/labs/{id}` | Chi tiết lab và công trình |
 | POST | `/api/labs` | Giảng viên tạo lab của mình |
 | PATCH | `/api/labs/{id}` | Chủ lab sửa thông tin/tiêu chí/mở nhận |
@@ -48,7 +48,7 @@ Lỗi có trường `detail`; lỗi Pydantic có thể là danh sách vị trí/
 | POST | `/api/ai/import` | Chủ lab xem trước trang công khai được phép |
 | POST | `/api/ai/import/confirm` | Chủ lab xác nhận công trình từ preview để lưu |
 
-API list hiện trả array trực tiếp, chưa có pagination kiểu cursor; không tích hợp dữ liệu quy mô lớn bằng cách bỏ giới hạn mà không thiết kế phân trang.
+API list trả array trực tiếp. Không truyền `limit` thì trả toàn bộ kết quả đã lọc để giữ tương thích client hiện tại; khi truyền `limit`, dùng `offset` để lấy trang tiếp theo. Đây là phân trang offset, chưa phải cursor pagination.
 
 ## Ví dụ PowerShell
 
@@ -120,6 +120,8 @@ Sau khi rút đơn, API list của giảng viên vẫn có trạng thái/lịch 
 ```
 
 Chat trả `answer`, `mode`, `sources`, `filters`, `vector_store`, `warning`. Nguồn có `id` chuỗi như `student:3`/`lab:1`, `entity_id` số nguyên, `type`, `title`, `url` nếu có, `excerpt`, `score`, và tùy trường hợp `document_id`. URL nguồn có thể là URL HTTP(S) công khai hoặc đường dẫn tải tài liệu `/api/documents/{id}/download` cần session. `history` được chấp nhận để tương thích UI nhưng không lưu/index/gửi nhà cung cấp; mỗi câu được giải quyết độc lập. Không hứa hội thoại nhiều lượt ghi nhớ các điều kiện từ lượt trước.
+
+Parser local áp dụng điều kiện kỹ năng/chủ đề AND, nhóm OR đơn giản, phủ định rõ ràng, nhiều điều kiện GPA và khoảng GPA. Với câu hỏi tìm lab của sinh viên, GPA trong hồ sơ được so với GPA tối thiểu của từng lab; với câu hỏi giảng viên tìm ứng viên, điều kiện GPA lọc GPA sinh viên. Cách diễn đạt ngoài các mẫu đã nhận diện có thể chưa thành bộ lọc; hãy kiểm tra mục `filters` trước khi dựa vào kết quả.
 
 Ở local mode, giảng viên có thể nhận đoạn bằng chứng CV đã gắn vào đơn không rút của lab mình. Không truy xuất bảng điểm hoặc CV upload sau đơn chưa có liên kết. Điều kiện cứng vẫn theo trường hồ sơ khai báo, văn bản CV chỉ hỗ trợ retrieval mềm. Chế độ ngoài chỉ gửi GPA/skills/topics ứng viên, bộ lọc/ngữ cảnh có cấu trúc, và nội dung nghiên cứu công khai; không gửi tên/email/bio, câu hỏi nguyên văn hay bất kỳ văn bản CV/bảng điểm nào.
 

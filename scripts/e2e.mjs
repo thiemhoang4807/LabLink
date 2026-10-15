@@ -229,6 +229,11 @@ try {
     title: 'Fictitious RAG evaluation paper', abstract: 'NLP and Python evaluation of retrieval augmented generation.', year: 2026,
   });
   assert.ok(paper.topics.includes('NLP'), 'Manual research publications should be automatically classified.');
+  const lowScoreLab = await api(lecturerContext, 'POST', '/labs', {
+    name: `E2E One Percent Match ${shortId}`, summary: 'Synthetic score boundary fixture.',
+    topics: ['Robotics'], skills: ['Python', ...Array.from({ length: 29 }, (_, index) => `CustomSkill${index}`)],
+    min_gpa: 4, capacity: 2,
+  });
   const registration = await api(studentContext, 'POST', '/auth/register', {
     name: 'E2E Student', email: `student-${shortId}@example.test`, password, role: 'student',
   });
@@ -260,15 +265,31 @@ try {
 
   const pdfPath = path.join(artifactDir, 'fictitious-cv.pdf');
   await writeFile(pdfPath, pdfFixture());
+  await studentPage.getByLabel('GPA (thang 4.0)', { exact: true }).fill('3.9');
+  await studentPage.getByLabel('Kỹ năng hiện có', { exact: true }).fill('Python, ReactJS, DraftTag');
+  const firstDocument = await expectMutation(studentPage, '/api/documents', 'POST', () => studentPage.locator('input[type="file"]').setInputFiles(pdfPath));
+  assert.equal(firstDocument.kind, 'cv');
+  const firstDocumentRow = studentPage.locator('.document-row').filter({ hasText: 'fictitious-cv.pdf' });
+  await firstDocumentRow.waitFor();
+  assert.equal(await studentPage.getByLabel('GPA (thang 4.0)', { exact: true }).inputValue(), '3.9');
+  assert.equal(await studentPage.getByLabel('Kỹ năng hiện có', { exact: true }).inputValue(), 'Python, ReactJS, DraftTag');
+  await expectMutation(studentPage, `/api/documents/${firstDocument.id}`, 'DELETE', () => firstDocumentRow.getByRole('button', { name: `Xóa ${firstDocument.filename}`, exact: true }).click());
+  assert.equal(await studentPage.getByLabel('GPA (thang 4.0)', { exact: true }).inputValue(), '3.9');
+  assert.equal(await studentPage.getByLabel('Kỹ năng hiện có', { exact: true }).inputValue(), 'Python, ReactJS, DraftTag');
   const document = await expectMutation(studentPage, '/api/documents', 'POST', () => studentPage.locator('input[type="file"]').setInputFiles(pdfPath));
   assert.equal(document.kind, 'cv');
   await studentPage.locator('.document-row').filter({ hasText: 'fictitious-cv.pdf' }).waitFor();
+  await studentPage.getByLabel('GPA (thang 4.0)', { exact: true }).fill('3.75');
+  await studentPage.getByLabel('Kỹ năng hiện có', { exact: true }).fill('Python, ReactJS, SQL');
+  await expectMutation(studentPage, '/api/profile', 'PATCH', () => studentPage.getByRole('button', { name: 'Lưu thay đổi', exact: true }).click());
   await studentPage.screenshot({ path: path.join(artifactDir, 'student-profile.png'), fullPage: true });
-  checked('Valid PDF uploaded and listed through the real file input');
+  checked('PDF upload and deletion preserve unsaved profile drafts; draft can be saved afterward');
 
   await studentPage.locator('nav a[href="/explore"]').click();
   await studentPage.locator('.card-title').filter({ hasText: labName }).waitFor();
-  assert.equal(await studentPage.locator('.explore-grid .lab-card').count(), 1);
+  assert.equal(await studentPage.locator('.explore-grid .lab-card').count(), 2);
+  const lowScoreCard = studentPage.locator('.explore-grid .lab-card').filter({ hasText: lowScoreLab.name });
+  await lowScoreCard.getByText('1% phù hợp', { exact: true }).waitFor();
   assert.deepEqual(pageErrors, [], 'Corrupted saved favorites must not crash lab cards.');
   checked('Corrupted favorites JSON recovers safely and explorer renders');
   await studentPage.locator('.card-title').filter({ hasText: labName }).click();
@@ -310,6 +331,7 @@ try {
     await candidateDialog.locator('.application-detail-top .status').filter({ hasText: label }).waitFor();
   }
   checked('Lecturer Kanban opens candidate/CV and advances reviewing → interview → accepted with notes');
+  await candidateDialog.getByRole('button', { name: 'Đóng', exact: true }).click();
 
   await studentPage.goto(`${webUrl}/applications`);
   await studentPage.locator('.application-card .status-accepted').waitFor();
@@ -322,6 +344,12 @@ try {
   await resultDialog.getByRole('button', { name: 'Đóng', exact: true }).click();
   checked('Student sees acceptance and full audit history; completed application cannot be withdrawn');
 
+  await lecturerPage.setViewportSize({ width: 390, height: 620 });
+  await lecturerPage.locator('.header-logout').click();
+  await lecturerPage.getByRole('heading', { name: 'Chào bạn trở lại.', exact: true }).waitFor();
+  assert.equal((await lecturerContext.request.get(`${webUrl}/api/auth/me`)).status(), 401);
+  checked('Lecturer can sign out from the always-visible mobile header and revoke the server session');
+
   // Expire only this suite's SQLite session, then exercise the live shell's 401 handling.
   await execFileAsync(python, ['-c', "import sqlite3,sys; db=sqlite3.connect(sys.argv[1]); db.execute(\"UPDATE sessions SET expires_at='2000-01-01 00:00:00.000000' WHERE user_id=?\", (int(sys.argv[2]),)); db.commit(); db.close()", dbPath, String(registration.user.id)], { windowsHide: true });
   await studentPage.locator('nav a[href="/profile"]').click();
@@ -333,6 +361,14 @@ try {
   assert.equal(await studentPage.locator('.app-shell').count(), 0);
   await studentPage.screenshot({ path: path.join(artifactDir, 'expired-session-login.png'), fullPage: true });
   checked('Expired server session returns the current UI to sign-in and clears private shell');
+  await studentPage.getByLabel('Email', { exact: true }).fill(`student-${shortId}@example.test`);
+  await studentPage.getByLabel('Mật khẩu', { exact: true }).fill(password);
+  await studentPage.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
+  await studentPage.locator('.app-shell').waitFor();
+  await studentPage.locator('.header-logout').click();
+  await studentPage.getByRole('heading', { name: 'Chào bạn trở lại.', exact: true }).waitFor();
+  assert.equal((await studentContext.request.get(`${webUrl}/api/auth/me`)).status(), 401);
+  checked('Student can sign out from the shared header and revoke the server session');
   assert.deepEqual(pageErrors, [], 'Browser must have no uncaught JavaScript errors.');
   assert.deepEqual(externalRequests, [], 'The workflow must make no external network requests.');
   checked('No uncaught browser errors or external network calls');

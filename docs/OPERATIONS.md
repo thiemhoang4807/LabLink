@@ -6,6 +6,8 @@
 
 **Compose:** PostgreSQL/pgvector, API không đặc quyền root trong container và Nginx. `docker compose up --build` chạy hệ thống, healthcheck database trước API và API trước web. PostgreSQL không publish port. Web/API chỉ bind `127.0.0.1`, dùng `localhost:8080` trên máy chạy Docker.
 
+Trong Compose, Nginx có IP `172.28.240.2`; Uvicorn chỉ tin forwarded headers từ IP đó. Mạng nội bộ dùng subnet `172.28.240.0/24`; nếu subnet này xung đột với mạng có sẵn, hãy đổi subnet và đồng bộ địa chỉ tĩnh của web/API/database cùng `--forwarded-allow-ips` trong `compose.yaml`. Nginx ghi đè `X-Forwarded-For` bằng địa chỉ kết nối mà chính Nginx nhận được.
+
 Tất cả cấu hình trong Compose hiện là **local demo**. `APP_ENV=development`, `SEED_DEMO=true`, cookie không Secure và mật khẩu development là lựa chọn phục vụ demo HTTP, không phải mặc định public.
 
 ## Trước khi mở pilot với dữ liệu thật

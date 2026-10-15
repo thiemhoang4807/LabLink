@@ -166,14 +166,15 @@ export function App() {
   const logout = async () => {
     try {
       await api("/auth/logout", { method: "POST" });
+    } catch (e) {
+      notify(`${errorMessage(e)} Bạn đã thoát khỏi giao diện; hãy đóng trình duyệt nếu đây không phải thiết bị riêng.`, true);
+    } finally {
       sessionVersion.current++;
       setUser(null);
       setLabs([]);
       setApplications([]);
       setMatches([]);
       setFavorites([]);
-    } catch (e) {
-      notify(errorMessage(e), true);
     }
   };
   const login = (next: User) => {
@@ -592,6 +593,10 @@ function Shell({
               aria-label="Xem cập nhật ứng tuyển"
             >
               <Bell size={19} />
+            </button>
+            <button className="header-logout" onClick={onLogout} aria-label="Đăng xuất">
+              <LogOut size={16} />
+              <span>Đăng xuất</span>
             </button>
             <div className="top-avatar" title={user.name}>
               {initials(user.name)}

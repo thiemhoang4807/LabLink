@@ -254,7 +254,7 @@ export function LabCard({
             title="Điểm gợi ý tương đối, không phải xác suất trúng tuyển"
           >
             <Sparkles size={13} />
-            {Math.round(match.score <= 1 ? match.score * 100 : match.score)}%
+            {Math.round(match.score)}%
             phù hợp
           </span>
         )}

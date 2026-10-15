@@ -14,9 +14,13 @@ services:
       timeout: 5s
       retries: 20
     restart: unless-stopped
+    networks:
+      lablink:
+        ipv4_address: 172.28.240.3
 
   api:
     build: ./apps/api
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips=172.28.240.2"]
     environment:
       APP_ENV: development
       DATABASE_URL: postgresql+psycopg://lablink:${POSTGRES_PASSWORD:-lablink_local_demo_change_me}@db:5432/lablink
@@ -44,6 +48,9 @@ services:
       timeout: 6s
       retries: 12
     restart: unless-stopped
+    networks:
+      lablink:
+        ipv4_address: 172.28.240.4
 
   web:
     build:
@@ -55,6 +62,15 @@ services:
       api:
         condition: service_healthy
     restart: unless-stopped
+    networks:
+      lablink:
+        ipv4_address: 172.28.240.2
+
+networks:
+  lablink:
+    ipam:
+      config:
+        - subnet: 172.28.240.0/24
 
 volumes:
   postgres_data:

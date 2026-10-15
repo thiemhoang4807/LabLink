@@ -54,7 +54,9 @@ export function Profile() {
       website: user.website || "",
       consent_ai: user.consent_ai,
     });
-  }, [user]);
+    // Refreshes after document changes replace the user object. Preserve an
+    // unsaved draft for the same account; initialize only when the account changes.
+  }, [user.id]);
   const field = (name: keyof typeof form, value: string | boolean) =>
     setForm((f) => ({ ...f, [name]: value }));
   const save = async () => {

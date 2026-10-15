@@ -36,6 +36,16 @@ def test_auth_cookie_rotation_logout_and_csrf(client, login, db):
     assert client.get("/api/auth/me").status_code == 401
 
 
+def test_lecturer_can_logout_and_revoke_session(client, login, db):
+    user = login("lecturer@lablink.demo")
+    assert user["role"] == "lecturer"
+    assert client.get("/api/auth/me").status_code == 200
+    response = client.post("/api/auth/logout")
+    assert response.status_code == 200
+    assert client.get("/api/auth/me").status_code == 401
+    assert db.scalar(select(LoginSession).where(LoginSession.user_id == user["id"])) is None
+
+
 def test_registration_validation_and_role_cannot_be_patched(client):
     payload = {"email": "new@example.com", "password": " strong-password ", "name": "New Student", "role": "student"}
     response = client.post("/api/auth/register", json=payload)
@@ -71,6 +81,23 @@ def test_lab_ownership(client, login):
     paper = client.post(f"/api/labs/{lab_id}/publications", json={"title": "Traceable retrieval", "year": 2026, "abstract": "Evaluation of research retrieval."})
     assert paper.status_code == 201
     assert client.get(f"/api/labs/{lab_id}").json()["publication_count"] == 1
+
+
+def test_lab_search_filters_before_pagination_past_500_records(client, login, db):
+    from app.models import Lab, User
+
+    owner = db.scalar(select(User).where(User.email == "lecturer@lablink.demo"))
+    for index in range(505):
+        db.add(Lab(owner_id=owner.id, name=f"Scale Lab {index}", slug=f"scale-lab-{index}", topics=["Scale Research"] if index == 504 else ["Other"], skills=[]))
+    db.commit()
+
+    response = client.get("/api/labs?q=Scale%20Lab%20504&topic=Scale%20Research")
+    assert response.status_code == 200
+    assert [lab["name"] for lab in response.json()] == ["Scale Lab 504"]
+    first_page = client.get("/api/labs?q=Scale%20Lab&limit=2&offset=0").json()
+    second_page = client.get("/api/labs?q=Scale%20Lab&limit=2&offset=2").json()
+    assert len(first_page) == len(second_page) == 2
+    assert {lab["id"] for lab in first_page}.isdisjoint({lab["id"] for lab in second_page})
 
 
 def test_application_duplicate_ownership_state_machine_and_history(client, login):
