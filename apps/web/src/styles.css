@@ -1,19 +1,19 @@
-/* System fonts keep Vietnamese text available without external requests. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
-  font-family: "Be Vietnam Pro", "Segoe UI", sans-serif;
-  color: #203638;
+  font-family: "Inter", sans-serif;
   background: #f6f8f6;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   --ink: #153b3b;
-  --green: #235a4f;
-  --lime: #c8f3ae;
+  --green: linear-gradient(180deg, #006450 0%, #1a4a40 100%);
+  --gradientgreen: linear-gradient(180deg, #C7EFAE 0%, #87FF85 100%);
+  --lime: linear-gradient(180deg, #c8f3ae 0%, #a8d98f 100%);
   --muted: #7d8b8b;
   --border: #e4e9e4;
   --paper: #fff;
-  --sidebar: #102d30;
+  --sidebar: linear-gradient(0deg, #1a423e 0%, #0a1a1c 100%);
 }
 * {
   box-sizing: border-box;
@@ -197,7 +197,10 @@ small {
   color: #fff;
 }
 .button.primary:hover {
-  background: #18473d;
+  background: var(--green);
+  box-shadow: 0 5px 15px #0a080825;
+  transform: translateY(-1px);
+  transition: all 0.15s;
 }
 .button.secondary {
   background: #fff;
@@ -207,6 +210,9 @@ small {
 .button.secondary:hover {
   background: #f2f7f0;
   border-color: #b8cbbc;
+  box-shadow: 0 5px 15px #0a080825;
+  transform: translateY(-1px);
+  transition: all 0.15s;
 }
 .button.lime {
   background: var(--lime);
@@ -214,7 +220,10 @@ small {
   font-weight: 600;
 }
 .button.lime:hover {
-  background: #dafbbf;
+  background: linear-gradient(180deg, #dafbbf 0%, #c8f3ae 100%);
+  box-shadow: 0 5px 15px #0a080825;
+  transform: translateY(-1px);
+  transition: all 0.15s;
 }
 .button.small {
   font-size: 11px;
@@ -381,7 +390,7 @@ small {
   border: 1px solid #427258;
   padding: 15px 18px;
   border-radius: 12px;
-  box-shadow: 0 8px 30px #102d3026;
+  box-shadow: 0 5px 15px #0a080825;
   font-size: 12px;
   line-height: 1.7;
   animation: toast-in 0.2s ease-out;
@@ -418,7 +427,7 @@ small {
 .login-story {
   position: relative;
   overflow: hidden;
-  background: #123537;
+  background: linear-gradient(0deg, #123537 0%, #0a1a1c 100%);
   min-height: 100vh;
   padding: 44px 9% 30px;
   display: flex;
@@ -490,7 +499,7 @@ small {
   border: 1px solid #7c9f7e5e;
   color: #c5edac;
   border-radius: 18px;
-  box-shadow: 0 8px 30px #0001;
+  box-shadow: 0 5px 15px #0a080825;
   display: grid;
   place-items: center;
   width: 55px;
@@ -641,6 +650,7 @@ small {
   flex-direction: column;
   padding: 30px 19px 16px;
   z-index: 30;
+  box-shadow: 5px 0 15px #0a080835;
 }
 .brand-link {
   display: block;
@@ -695,14 +705,19 @@ small {
 .nav-item:hover {
   background: #ffffff08;
   color: #e4eedc;
+  box-shadow: 0 5px 10px #0a080850;
+  transform: translateX(1px);
+  transition: all 0.15s;
 }
 .nav-item.active {
-  background: #c7efae;
-  color: #244334;
+  background: var(--gradientgreen);
+  color: var(--green);
   font-weight: 600;
+  box-shadow: 0 5px 10px #0a080850;
+  transition: all 0.3s;
 }
 .nav-item.active svg {
-  color: #244334;
+  color: var(--green);
 }
 .nav-ai {
   font-size: 7px;
@@ -720,16 +735,16 @@ small {
 .nav-count {
   margin-left: auto;
   border-radius: 5px;
-  background: #ffffff10;
-  color: #afcbc1;
+  background: #ca0000;
+  color: #f9faf9;
   min-width: 18px;
   text-align: center;
   padding: 2px 3px;
   font-size: 8px;
 }
 .active .nav-count {
-  background: #31522d14;
-  color: #244334;
+  background: #ca0000;
+  color: #f9faf9;
 }
 .sidebar-bottom {
   margin-top: auto;
@@ -804,6 +819,12 @@ small {
 .sidebar-user > svg {
   color: #92b3a7;
 }
+
+.sidebar-user:hover {
+  background: #ffffff0a;
+  border-radius: 7px;
+}
+
 .logout-button {
   display: flex;
   align-items: center;
@@ -858,6 +879,10 @@ small {
   align-items: center;
   padding: 0 35px;
   gap: 20px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  box-shadow: 0 5px 15px #0a080825;
 }
 .breadcrumbs {
   display: flex;
@@ -964,6 +989,7 @@ small {
   background: #fff;
   border: 1px solid var(--border);
   border-radius: 12px;
+  box-shadow: 0 5px 15px #0a080825;
 }
 .section-title {
   display: flex;
@@ -1074,13 +1100,14 @@ small {
 }
 /* Overview */
 .welcome-banner {
-  background: #1a423e;
+  background: linear-gradient(0deg, #1a423e 0%, #0a1a1c 100%);
   min-height: 269px;
   border-radius: 14px;
   overflow: hidden;
   display: flex;
   position: relative;
   margin-bottom: 23px;
+  box-shadow: 0 5px 15px #0a080825;
 }
 .welcome-copy {
   position: relative;
@@ -1172,7 +1199,7 @@ small {
   top: 28%;
   border-radius: 20px;
   transform: rotate(-13deg);
-  box-shadow: 13px 15px 0 #dce9b90b;
+  box-shadow: 0 5px 15px #0a080835;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1252,13 +1279,14 @@ small {
   background: #fff;
   text-align: left;
   padding: 17px 17px 15px;
+  box-shadow: 0 5px 15px #0a080825;
   transition:
     transform 0.15s,
     box-shadow 0.15s;
 }
 .stat-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 15px #1c3d2310;
+  box-shadow: 0 5px 15px #0a080825;
 }
 .stat-top {
   display: flex;
@@ -1327,13 +1355,11 @@ small {
   padding: 19px 19px 0;
   overflow: hidden;
   animation: fade-in 0.35s ease both;
-  transition:
-    border 0.2s,
-    box-shadow 0.2s;
+  box-shadow: 0 5px 15px #0a080825;
+  transition: all 0.2s;
 }
 .lab-card:hover {
   border-color: #b9cbb5;
-  box-shadow: 0 6px 18px #1c3d2309;
 }
 .lab-card-top {
   display: flex;
@@ -1376,7 +1402,7 @@ small {
   margin: -5px -6px 0 0;
 }
 .bookmark.is-saved {
-  color: #61855a;
+  color: #005744;
 }
 .lab-eyebrow {
   font-size: 7px;
@@ -1490,6 +1516,7 @@ small {
   border-radius: 12px;
   padding: 23px 22px;
   align-self: stretch;
+  box-shadow: 0 5px 15px #0a080825;
 }
 .profile-widget-head {
   display: flex;
@@ -1661,6 +1688,7 @@ td small {
   border-radius: 11px;
   margin-bottom: 22px;
   color: #8a9e80;
+  box-shadow: 0 5px 10px #0a080810;
 }
 .explore-search input:not([type="checkbox"]) {
   border: 0;
@@ -1690,10 +1718,21 @@ td small {
   color: #92a085;
   white-space: nowrap;
 }
+
+.topic-tabs > button:hover {
+  background: #f8f9f5;
+  color: #4b7d50;
+  border-color: #cdd6c5;
+  transition:all 0.15s;
+}
+
 .topic-tabs > button.active {
-  background: #294e40;
+  background: linear-gradient(0deg, #1b332a 0%, #1a4a40 100%);
+  box-shadow: 0 5px 15px #0a080825;
+  transform: translateY(-1px);
   border-color: #294e40;
   color: #eff6e7;
+  transition:all 0.15s;
 }
 .explore-toolbar {
   display: flex;
@@ -1763,7 +1802,7 @@ td small {
   width: 100%;
   max-height: calc(100dvh - 56px);
   overflow: auto;
-  box-shadow: 0 25px 100px #08272933;
+  box-shadow: 0 5px 15px #0a080825;
   outline: 0;
   animation: modal-in 0.18s ease-out;
 }
@@ -1930,6 +1969,7 @@ td small {
   border: 1px solid var(--border);
   border-radius: 12px;
   margin-bottom: 27px;
+  box-shadow: 0 5px 10px #0a080810;
 }
 .application-summary > div {
   display: flex;
@@ -2010,7 +2050,7 @@ td small {
 .segmented > button.active {
   background: #fff;
   color: #506b44;
-  box-shadow: 0 1px 5px #1b3d1010;
+  box-shadow: 0 5px 15px #0a080825;
 }
 .inline-label {
   display: flex;
@@ -2050,6 +2090,7 @@ td small {
   padding: 13px 10px;
   transition: background 0.15s;
   min-width: 180px;
+  box-shadow: 0 5px 10px #0a080810;
 }
 .kanban-column.drag-over {
   background: #dcebd1;
@@ -2101,7 +2142,7 @@ td small {
   border: 1px solid #e0e7d9;
   border-radius: 9px;
   padding: 14px 12px 0;
-  box-shadow: 0 2px 3px #132a1404;
+  box-shadow: 0 5px 15px #0a080825;
 }
 .candidate-card[draggable="true"] {
   cursor: grab;
@@ -2575,6 +2616,7 @@ td small {
   display: flex;
   flex-direction: column;
   min-height: 630px;
+  box-shadow: 0 5px 10px #1b3d1010;
 }
 .chat-panel-header {
   display: flex;
@@ -2750,6 +2792,7 @@ td small {
   border-radius: 12px;
   background: #eff5e6;
   padding: 24px 22px;
+  box-shadow: 0 5px 10px #1b3d1010;
 }
 .info-icon {
   color: #9eb681;
