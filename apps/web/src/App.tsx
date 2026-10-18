@@ -495,7 +495,7 @@ function Shell({
     ...(user.role === "lecturer"
       ? [{ to: "/manage", icon: FlaskConical, label: "Phòng lab của tôi" }]
       : []),
-    { to: "/profile", icon: UserRound, label: "Hồ sơ của tôi" },
+    //{ to: "/profile", icon: UserRound, label: "Hồ sơ của tôi" },
   ];
   const current =
     links.find((l) => l.to === location.pathname)?.label || "Tổng quan";
@@ -511,9 +511,8 @@ function Shell({
         <div className="workspace-pill">
           <span className="workspace-dot" />
           Không gian {user.role === "student" ? "sinh viên" : "giảng viên"}
-          <ChevronDown size={13} />
         </div>
-        <div className="nav-label">KHÔNG GIAN CỦA BẠN</div>
+        <div className="nav-label"></div>
         <nav aria-label="Điều hướng chính">
           {links.map((l) => (
             <NavLink
@@ -558,11 +557,7 @@ function Shell({
             </span>
             <ArrowUpRight size={15} />
           </button>
-          <button className="logout-button" onClick={onLogout}>
-            <LogOut size={15} />
-            Đăng xuất
-          </button>
-          <div className="sidebar-footnote">
+            <div className="sidebar-footnote">
             LABLINK <span>SEAPP 2026</span>
           </div>
         </div>
@@ -577,8 +572,6 @@ function Shell({
             >
               <Menu size={22} />
             </button>
-            <span>Không gian làm việc</span>
-            <span className="breadcrumb-slash">/</span>
             <strong>{current}</strong>
           </div>
           <div className="topbar-actions">

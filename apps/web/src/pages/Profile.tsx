@@ -397,7 +397,6 @@ export function Profile() {
                 ))}
               </div>
               <Notice>
-                <CheckCircle2 size={15} />
                 Tài liệu chỉ được chia sẻ với lab nhận hồ sơ. Tệp tải lên sau
                 khi ứng tuyển sẽ không tự thêm vào hồ sơ cũ.
               </Notice>
